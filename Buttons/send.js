@@ -15,7 +15,7 @@ module.exports = {
     // find userObject
     let userObject = await data.users.find((u) => u.userId === user.id);
 
-    const EMBED_CHANNEL = await _client.channels.cache.get(userObject.sendChannel);
+    const EMBED_CHANNEL = await client.channels.cache.get(userObject.sendChannel);
 
     async function fetch(channel, msg) {
       const message = await channel.messages.fetch(msg);
