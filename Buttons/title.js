@@ -31,29 +31,27 @@ module.exports = {
         return error(interaction, "Title is too long", m);
       }
 
+      const title = m.content.length > remaining ? m.content.substring(0, remaining) : m.content;
+
       // is content json?
       let isJson = false;
       try {
-        JSON.parse(m.content);
+        JSON.parse(title);
         isJson = true;
       } catch (e) {
         isJson = false;
       }
 
       if (isJson) {
-        console.log(JSON.parse(m.content));
-
-        modifiedEmbed = EmbedBuilder.from(embeds[1]).setTitle(JSON.parse(m.content));
+        modifiedEmbed = EmbedBuilder.from(embeds[1]).setTitle(JSON.parse(title));
         interaction.editReply({
-          embeds: [msgEmbed.setDescription(`**Title set to:** \`${JSON.parse(m.content)}\``)],
+          embeds: [msgEmbed.setDescription(`**Title set to:** \`${JSON.parse(title)}\``)],
         });
       } else {
-        const title = m.content.length > remaining ? m.content.substring(0, remaining) : m.content;
-
         modifiedEmbed = EmbedBuilder.from(embeds[1]).setTitle(title);
 
         interaction.editReply({
-          embeds: [msgEmbed.setDescription(`**Title set to:** \`${m.content}\``)],
+          embeds: [msgEmbed.setDescription(`**Title set to:** \`${title}\``)],
         });
       }
 
