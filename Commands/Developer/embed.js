@@ -1,15 +1,13 @@
 const {
-  SlashCommandBuilder,
   ChatInputCommandInteraction,
   EmbedBuilder,
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
-  PermissionFlagsBits,
   ApplicationCommandOptionType,
 } = require("discord.js");
 
-const { error, buttons } = require("../../util/embed-command-functions.js");
+const { error } = require("../../util/embed-command-functions.js");
 
 const { Subcommand: SC, SubcommandGroup: SCG, Channel: C, String: S } = ApplicationCommandOptionType;
 
@@ -192,7 +190,7 @@ module.exports = {
    * @param {Client} client
    */
 
-  async autocomplete(interaction, client) {
+  async autocomplete(interaction) {
     const data = await db.findOne({ _id: interaction.guild.id });
     const categories = data.categories;
     const choices = categories.map((category) => category.name);
@@ -207,10 +205,20 @@ module.exports = {
     const uid = user.id;
     const action = interaction.options.getSubcommand();
     const messageId = interaction.options.getString("message-id");
+    // message id should be a string of numbers
+    if (messageId && !/^\d+$/.test(messageId)) return error(interaction, "Invalid message id");
+
     const message = interaction.options.getString("message");
     const messageChannel = interaction.options.getChannel("channel");
 
+    let name = interaction.options.getString("name");
+    let category = interaction.options.getString("category");
+
     let interactionMessage = null;
+    let template = null;
+    let categoryTemplate = null;
+    let embed_Data = null;
+    let JSON_Data = null;
 
     // find doc or create new one
     let data = await db.findOne({ _id: guild.id });
@@ -294,38 +302,30 @@ module.exports = {
         await data.save();
         break;
       case "add_category": // add a category
-        const categoryName = interaction.options.getString("name");
-
-        if (data.categories.find((c) => c.name === categoryName)) {
+        if (data.categories.find((c) => c.name === name)) {
           return interaction.reply({ content: "Category already exists", ephemeral: true });
         }
 
-        data.categories.push({ name: categoryName, templates: [] });
+        data.categories.push({ name: name, templates: [] });
         data.markModified("categories");
         await data.save();
-        interaction.reply({ content: `Added category ${categoryName}`, ephemeral: true });
+        interaction.reply({ content: `Added category \`${name}\``, ephemeral: true });
         break;
       case "remove_category": // remove a category
-        const categoryNameToRemove = interaction.options.getString("name");
-
-        if (!data.categories.find((c) => c.name === categoryNameToRemove)) {
+        if (!data.categories.find((c) => c.name === name)) {
           return interaction.reply({ content: "Category does not exist", ephemeral: true });
         }
 
-        data.categories = data.categories.filter((c) => c.name !== categoryNameToRemove);
+        data.categories = data.categories.filter((c) => c.name !== name);
         data.markModified("categories");
         await data.save();
-        interaction.reply({ content: `Removed category ${categoryNameToRemove}`, ephemeral: true });
+        interaction.reply({ content: `Removed category \`${name}\``, ephemeral: true });
         break;
 
       case "save_as_template": // save embed as template
-        const categoryNameToSave = interaction.options.getString("category");
-
-        if (!data.categories.find((c) => c.name === categoryNameToSave)) {
-          return error(interaction, `Category \`${categoryNameToSave}\` not found`);
+        if (!data.categories.find((c) => c.name === category)) {
+          return error(interaction, `Category \`${category}\` not found`);
         }
-
-        const templateName = interaction.options.getString("name");
 
         if (!userObject.interactionChannel && !userObject.interactionMessage) {
           return error(interaction, "You haven't created an embed yet");
@@ -335,45 +335,45 @@ module.exports = {
 
         saveMessage = await fetch(chan, userObject.interactionMessage);
 
-        const embed_Data = saveMessage.embeds[1];
+        embed_Data = saveMessage.embeds[1];
 
-        const JSON_data = JSON.stringify(embed_Data);
+        JSON_Data = JSON.stringify(embed_Data);
 
-        const template = {
-          name: templateName,
-          embed: JSON_data,
+        template = {
+          name: name,
+          embed: JSON_Data,
         };
-        const category = data.categories.find((c) => c.name === categoryNameToSave);
-        category.templates.push(template);
+
+        categoryTemplate = data.categories.find((c) => c.name === category);
+        categoryTemplate.templates.push(template);
         data.markModified("categories");
         await data.save();
-        interaction.reply({ content: `Saved template \`${templateName}\``, ephemeral: true });
+        interaction.reply({ content: `Saved template \`${name}\` in category \`${category}\``, ephemeral: true });
         break;
 
       case "save_from_message": // save embed from message
-        const categoryNameToSaveFromMessage = interaction.options.getString("category");
-        const embedToSave = await fetch(messageChannel, messageId);
-
-        if (!data.categories.find((c) => c.name === categoryNameToSaveFromMessage)) {
-          return error(interaction, `Category \`${categoryNameToSaveFromMessage}\` not found`);
+        if (!data.categories.find((c) => c.name === category)) {
+          return error(interaction, `Category \`${category}\` not found`);
         }
 
-        const templateNameFromMessage = interaction.options.getString("name");
+        saveMessage = await fetch(messageChannel, messageId);
 
-        const embed_DataFromMessage = embedToSave.embeds[0];
+        // check if message has embed
+        if (!saveMessage.embeds[0]) return error(interaction, "Message has no embed");
 
-        const JSON_dataFromMessage = JSON.stringify(embed_DataFromMessage);
+        embed_Data = saveMessage.embeds[0];
 
-        const templateFromMessage = {
-          name: templateNameFromMessage,
-          embed: JSON_dataFromMessage,
+        JSON_Data = JSON.stringify(embed_Data);
+
+        template = {
+          name: name,
+          embed: JSON_Data,
         };
-        const categoryFromMessage = data.categories.find((c) => c.name === categoryNameToSaveFromMessage);
-        categoryFromMessage.templates.push(templateFromMessage);
+        const categoryFromMessage = data.categories.find((c) => c.name === category);
+        categoryFromMessage.templates.push(template);
         data.markModified("categories");
         await data.save();
-        interaction.reply({ content: `Saved template \`${templateNameFromMessage}\``, ephemeral: true });
-
+        interaction.reply({ content: `Saved template \`${name}\` in category \`${category}\``, ephemeral: true });
         break;
 
       case "select_from_template": // use a stored embed as a template
@@ -381,22 +381,21 @@ module.exports = {
           return error(interaction, "You already have an embed in progress");
         }
 
-        const categoryNameToUse = interaction.options.getString("category");
         userObject.sendChannel = messageChannel.id;
         userObject.sendMessage = message || "";
         data.markModified("users");
         await data.save();
 
-        // get index of categoryNameToUse
-        const categoryIndex = data.categories.findIndex((c) => c.name === categoryNameToUse);
+        // get index of category
+        const categoryIndex = data.categories.findIndex((c) => c.name === category);
 
-        if (!data.categories.find((c) => c.name === categoryNameToUse)) {
-          return error(interaction, `Category \`${categoryNameToUse}\` not found`);
+        if (!data.categories.find((c) => c.name === category)) {
+          return error(interaction, `Category \`${category}\` not found`);
         }
 
-        // check length of data.categories[categoryNameToUse].templates
+        // check length of data.categories[category].templates
         if (data.categories[categoryIndex].templates.length === 0) {
-          return error(interaction, `No templates found in category \`${categoryNameToUse}\``);
+          return error(interaction, `No templates found in category \`${category}\``);
         }
 
         const infoEmbeds = [];
@@ -409,7 +408,7 @@ module.exports = {
           const infoEmbed = {
             type: "rich",
             description: `
-              **category:** \`${categoryNameToUse}\`
+              **category:** \`${category}\`
               **name:** \`${template.name}\`
               `,
             color: 10154743,
@@ -424,7 +423,7 @@ module.exports = {
           infoEmbeds.push(infoEmbed);
         }
 
-        // generate embeds based on the elements in data.categories[categoryNameToUse].templates
+        // generate embeds based on the elements in data.categories[category].templates
         for (let i = 0; i < data.categories[categoryIndex].templates.length; i++) {
           const template = data.categories[categoryIndex].templates[i];
           const embed = JSON.parse(template.embed);
