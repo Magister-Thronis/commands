@@ -15,7 +15,7 @@ module.exports = {
       embeds: [authorEmbed, embeds[1]],
     });
 
-    let msgEmbed = new EmbedBuilder().setColor("F4D58D").setDescription("Tag a user");
+    let msgEmbed = new EmbedBuilder().setColor("F4D58D").setDescription("Tag a user or send a message:");
 
     interaction.reply({ embeds: [msgEmbed] });
 
@@ -32,19 +32,26 @@ module.exports = {
         return error(interaction, "**Author is too long**", m);
       }
 
-      author = m.mentions.users.first();
+      // author is the first mention or the content of the message
+      let author = m.mentions.users.first() ? m.mentions.users.first() : m.content;
 
       interaction.editReply({
-        embeds: [EmbedBuilder.from(msgEmbed).setDescription(`Author set to: \`${author.username}\``)],
+        embeds: [EmbedBuilder.from(msgEmbed).setDescription(`Author set to: ${author}`)],
       });
 
-      modifiedEmbed = EmbedBuilder.from(embeds[1]).setAuthor({
-        name: `${author.username}`,
-        iconURL: author.displayAvatarURL({
-          dynamic: true,
-          size: 512,
-        }),
-      });
+      modifiedEmbed = EmbedBuilder.from(embeds[1]);
+
+      if (m.mentions.users.first()) {
+        modifiedEmbed.setAuthor({
+          name: author.username,
+          iconURL: author.displayAvatarURL({
+            dynamic: true,
+            size: 512,
+          }),
+        });
+      } else {
+        modifiedEmbed.setAuthor({ name: author });
+      }
 
       interaction.message
         .edit({
