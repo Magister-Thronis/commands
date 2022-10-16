@@ -7,8 +7,9 @@ Embed creator using buttons and message collectors
 - mongoose
 
 **File changes**
-in your **Index.js ** add
-`MessageContent` to your intents Array
+
+in your **Index.js** 
+add `MessageContent` to your intents Array
 
 and
 ```js
@@ -49,7 +50,7 @@ Files.forEach((file) => {
   });
 ```
 
-in your** SlashCommands.js **
+in your **SlashCommands.js**
 
 change 
 ```js
