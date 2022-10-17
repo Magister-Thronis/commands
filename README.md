@@ -3,7 +3,7 @@ Embed creator using buttons and message collectors
 
 
 **Dependencies**
-- Lyx v14 command handler
+- Lyx v14 command handler (https://www.youtube.com/c/Lyxcode)
 - mongoose
 
 **File changes**
