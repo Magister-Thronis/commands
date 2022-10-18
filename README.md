@@ -6,7 +6,7 @@ Embed creator using buttons and message collectors
 - Lyx v14 command handler (https://www.youtube.com/c/Lyxcode)
 - mongoose
 
-**File changes**
+**File changes** (if using lyx handler)
 
 in your **Index.js** 
 add `MessageContent` to your intents Array
