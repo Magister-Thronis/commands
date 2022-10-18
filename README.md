@@ -63,7 +63,7 @@ change
       ephemeral: true
     });
 
-    if(command.developer && interaction.user.id !== "497051543686742026")
+    if(command.developer && interaction.user.id !== "<your-user-id>")
     return interaction.reply({
       content: "This command is only available to the developer.",
       ephemeral: true
@@ -75,7 +75,7 @@ to
 
     if (interaction.isChatInputCommand()) {
       if (!command) return interaction.reply({ content: "This command is outdated!", ephemeral: true });
-      if (command.developer && interaction.user.id !== "270531731960889344")
+      if (command.developer && interaction.user.id !== "<your-user-id>")
         return interaction.reply({
           content: "This command is only available to the developer.",
           ephemeral: true,
